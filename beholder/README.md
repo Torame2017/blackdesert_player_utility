@@ -11,4 +11,4 @@ It enables your guild members to share information (e.g. the location of enemies
 1. Put "interface" folder to a directory in your folder which ***can*** be accessed via http.
 
 # Libraries used
--PHP WebSocket(https://github.com/nekudo/php-websocket)
+-[PHP WebSocket](https://github.com/nekudo/php-websocket)
