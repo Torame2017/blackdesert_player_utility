@@ -1,6 +1,6 @@
-###BEHOLDER
-
+### BEHOLDER
 ---
+
 # What is Beholder?
 Beholder is an assitance tool for wars
 It enables your guild members to share information (e.g. the location of enemies canon).
