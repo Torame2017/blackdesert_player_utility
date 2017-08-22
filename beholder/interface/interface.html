@@ -1,0 +1,246 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Cache-Control" content="no-cache">
+<link rel="icon" href="img/favicon.ico" type="image/x-icon">
+<link rel="shortcut icon" href="img/favicon.ico" type="image/x-icon" />
+<title>BEHOLDER</title>
+<script src="http://tk2-206-12996.vs.sakura.ne.jp/libs/jquery-2.2.2.min.js"></script>
+<script>
+
+var ws;
+
+$(function(){
+    // WebSocket作成
+    ws = new WebSocket("ws://tk2-206-12996.vs.sakura.ne.jp:8080/beholder");
+ 
+    // WebSocket open時のイベントハンドラ登録
+    ws.onopen = function(){
+        $("#log").prepend("&lt;onopen&gt; " + "<br/>");
+    	// 初期マップの通知
+		var value = $("#select_map").val();
+    	ws.send("report_map:"+ value); // WebSocketを使いサーバにメッセージを送信
+    }
+ 
+    // WebSocket message受信時のイベントハンドラ登録
+    ws.onmessage = function(message){
+    	var tag_notify_map_icon = "notify_map_icon";
+    	var tag_notify_remove_map_icon = "notify_remove_map_icon";
+    	var tag_notify_map = "notify_map";
+    	
+        $("#log").prepend(message.data + "<br/>");
+        
+        var tag = message.data.slice(0, message.data.indexOf(":"));
+        var payload = message.data.slice(message.data.indexOf(":") + 1);
+        
+        if (tag == tag_notify_map) {
+        	// 地図通知
+        	var map = payload;
+        	var map_url;
+        	switch (map) {
+        		case "item_balenos":
+        			map_url="img/map_balenos.jpg";
+        			break;
+        		case "item_calpheon":
+        			map_url="img/map_calpheon.jpg";
+        			break;
+        		case "item_serendia":
+        			map_url="img/map_serendia.jpg";
+        			break;
+        		case "item_media":
+        			map_url="img/map_media.jpg";
+        			break;
+        		case "item_valencia":
+        			map_url="img/map_valencia.jpg";
+        			break;
+        	}
+        	$("#img_map").attr({'src':map_url});
+        } else if (tag == tag_notify_map_icon) {
+        	// 地図アイコン通知
+        	var id;
+        	var type;
+        	var x;
+        	var y;
+        	var buf;
+        	
+        	var slice_start;
+        	var slice_end;
+        	
+        	slice_end = payload.indexOf(",");
+        	id = payload.slice(0, slice_end);
+        	
+        	slice_start = slice_end + 1;
+        	slice_end = payload.indexOf(",", slice_start);
+        	type = payload.slice(slice_start, slice_end); 
+        	
+        	slice_start = slice_end + 1;
+        	slice_end = payload.indexOf(",", slice_start);
+        	x = payload.slice(slice_start, slice_end); 
+        	
+        	slice_start = slice_end + 1;
+        	y = payload.slice(slice_start); 
+        	
+	        console.log(" x:" + x + " y:" + y);
+	        
+	        var img_file_name;
+	        
+	        switch (type) {
+	        	case "item_headquarters":
+	        		img_file_name = "headquarters.jpg";
+	        		break;
+	        	case "item_headquarters_enemy":
+	        		img_file_name = "headquarters_enemy.jpg";
+	        		break;
+	        	case "item_meeting_place":
+	        		img_file_name = "meeting_place.jpg";
+	        		break;
+	        	case "item_meeting_place_enemy":
+	        		img_file_name = "meeting_place_enemy.jpg";
+	        		break;
+	        	case "item_canon_enemy":
+	        		img_file_name = "canon_enemy.jpg";
+	        		break;
+	        	case "item_canon_enemy_destroyed":
+	        		img_file_name = "canon_enemy_destroyed.jpg";
+	        		break;
+	        }
+        	var line = '<img src="img/' + img_file_name + '" id="img_map_icon_' + id + '" onclick="img_map_icon_onclick(event)" style="position:absolute; width:18px; height:12px; left:' + x + 'px; top: ' + y + 'px">';
+        	$("#div_map").append(line);
+        } else if (tag == tag_notify_remove_map_icon) {
+        	var id = "img_map_icon_" + payload;
+            $("#" + id).remove();
+        }
+    }
+ 
+    // WebSocket error時のイベントハンドラ登録
+    ws.onerror = function(){
+        $("#log").prepend("&lt;onerror&gt; " + "<br/>");
+    }
+ 
+    // WebSocket close時のイベントハンドラ登録
+    ws.onclose = function(){
+        $("#log").prepend("&lt;onclose&gt; " + "<br/>");
+    }
+ 
+    // Windowが閉じられた(例：ブラウザを閉じた)時のイベントを設定
+    $(window).unload(function() {
+        ws.onclose(); // WebSocket close
+    })
+ 
+    // キー入力時のイベントを設定
+    $("#message").keyup(function(e){
+        ws.send($("#message").val()); // WebSocketを使いサーバにメッセージを送信
+    });
+
+    // マップ変更ボタンクリック
+    $("#select_map").change(function(e){
+    	var value = $("#select_map").val();
+        ws.send("report_map:"+ value); // WebSocketを使いサーバにメッセージを送信
+    });
+    
+    // アイコン全消去ボタンクリック
+    $("#button_report_clear_map_icon").click(function(e){
+		if(window.confirm('このマップのアイコンがクリアされます。本当によろしいですか？')){
+        	ws.send("report_clear_map_icon:"); // WebSocketを使いサーバにメッセージを送信
+		}
+    });
+})
+
+function img_map_icon_onclick(e) {
+    var value = $("input[name='RadioGroup_map_input']:checked").val();
+
+    if (value == "item_remove") {
+       	slice_start = e.target.id.indexOf("img_map_icon_") + 13;
+       	var id;
+       	id = e.target.id.slice(slice_start);
+		ws.send("report_remove_map_icon:" + id);
+		$("input[name='RadioGroup_map_input']").val(['item_none']);
+    }
+	
+}
+
+function img_map_onclick(e) {
+
+    var x = e.pageX - $("#img_map").offset()["left"] - 9;
+    var y = e.pageY - $("#img_map").offset()["top"] - 6;
+
+    var value = $("input[name='RadioGroup_map_input']:checked").val();
+
+	console.log(value + " x:" + x + " y:" + y);
+	if (value == "item_headquarters"
+		|| value == "item_headquarters_enemy"
+		|| value == "item_meeting_place"
+		|| value == "item_meeting_place_enemy"
+		|| value == "item_canon_enemy"
+		|| value == "item_canon_enemy_destroyed") {
+		ws.send("report_map_icon:" + value + "," + x + "," + y);
+		$("input[name='RadioGroup_map_input']").val(['item_none']);
+	}	
+}
+
+</script>
+<style type="text/css">
+div.blockleft_1000 {
+   float: left;
+   width: 1100px;
+}
+div.blockleft {
+   float: left;
+}
+div.blockright {
+   float: right;
+}
+div.clearblock {
+   clear: both;
+}
+.relative {
+    position: relative;
+    width: auto;
+    height: auto;
+    max-width: 1000px
+    max-height: 1000px
+}
+
+</style>
+</head>
+<body>
+<div class="blockleft_1000">
+<div id="div_map" class="relative">
+<img id="img_map" width="1000px" src="" onclick="img_map_onclick(event)" />
+</div>
+</div>
+
+<div class="blockleft">
+自分が操作するマップの変更<br />
+<select id="select_map">
+    <option value="item_balenos">バレノス</option>
+    <option value="item_serendia">セレンディア</option>
+    <option value="item_calpheon">カルフェオン</option>
+    <option value="item_media">メディア</option>
+    <option value="item_valencia">バレンシア</option>
+</select>
+<br />
+<hr />
+<input type="radio" id="radio_none" name="RadioGroup_map_input" value="item_none" checked><label for="radio_none" checked>無選択</label><br /><br />
+<input type="radio" id="radio_headquarters" name="RadioGroup_map_input" value="item_headquarters"><label for="radio_headquarters">自砦<img src="img/headquarters.jpg"></label><br /><br />
+<input type="radio" id="radio_headquarters_enemy" name="RadioGroup_map_input" value="item_headquarters_enemy"><label for="radio_headquarters_enemy">敵砦<img src="img/headquarters_enemy.jpg"></label><br /><br />
+<input type="radio" id="radio_meeting_place" name="RadioGroup_map_input" value="item_meeting_place"><label for="radio_meeting_place">味方集合地点<img src="img/meeting_place.jpg"></label><br /><br />
+<input type="radio" id="radio_meeting_place_enemy" name="RadioGroup_map_input" value="item_meeting_place_enemy"><label for="radio_meeting_place_enemy">敵集合地点<img src="img/meeting_place_enemy.jpg"></label><br /><br />
+<input type="radio" id="radio_canon_enemy" name="RadioGroup_map_input" value="item_canon_enemy"><label for="radio_canon_enemy">敵大砲<img src="img/canon_enemy.jpg"></label><br /><br />
+<input type="radio" id="radio_canon_enemy_destroyed" name="RadioGroup_map_input" value="item_canon_enemy_destroyed"><label for="radio_canon_enemy_destroyed">敵大砲（破壊済）<img src="img/canon_enemy_destroyed.jpg"></label><br /><br />
+<input type="radio" id="radio_remove" name="RadioGroup_map_input" value="item_remove"><label for="radio_remove">削除<img src="img/remove.jpg"></label><br /><br />
+<br /><br />
+<input type="button" id="button_report_clear_map_icon" value="アイコン全消去" />
+</div>
+<div class="clearblock">
+<br />
+<hr />
+<div class="blockright">
+Desuyoro command control system "BEHOLDER" (c)Torame 2016<br />
+<a href="interface.html">安定版</a>　<a href="interface_dev.html">開発版</a>
+</div>
+<div id="log" />
+</div>
+</body>
+</html>
